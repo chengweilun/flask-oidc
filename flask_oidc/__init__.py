@@ -39,6 +39,8 @@ from oauth2client.client import flow_from_clientsecrets, OAuth2WebServerFlow,\
     AccessTokenRefreshError, OAuth2Credentials
 import httplib2
 from itsdangerous import JSONWebSignatureSerializer, BadSignature
+import string
+import random
 
 __all__ = ['OpenIDConnect', 'MemoryCredentials']
 
@@ -95,6 +97,20 @@ class ErrStr(str):
 
 
 GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com']
+
+
+BASECH = string.ascii_letters + string.digits + '-._~'
+
+
+def unreserved(size=64):
+    """
+    Returns a string of random ascii characters, digits and unreserve characters
+
+    :param size: The length of the string
+    :return: string
+    """
+
+    return "".join([random.choice(BASECH) for _ in range(size)])
 
 
 class OpenIDConnect(object):
@@ -170,10 +186,18 @@ class OpenIDConnect(object):
             app.after_request(self._after_request)
 
         # Initialize oauth2client
-        self.flow = flow_from_clientsecrets(
-            app.config['OIDC_CLIENT_SECRETS'],
-            scope=app.config['OIDC_SCOPES'],
-            cache=secrets_cache)
+        if 'OIDC_PKCE' in app.config and app.config['OIDC_PKCE'] is True:
+            code_verifier = unreserved(64)
+            _cv = code_verifier.encode('ascii')
+            self.flow = flow_from_clientsecrets(
+                app.config['OIDC_CLIENT_SECRETS'],
+                scope=app.config['OIDC_SCOPES'],
+                cache=secrets_cache, pkce=True, code_verifier=_cv)
+        else:
+            self.flow = flow_from_clientsecrets(
+                app.config['OIDC_CLIENT_SECRETS'],
+                scope=app.config['OIDC_SCOPES'],
+                cache=secrets_cache)
         assert isinstance(self.flow, OAuth2WebServerFlow)
 
         # create signers using the Flask secret key
