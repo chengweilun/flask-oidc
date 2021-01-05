@@ -787,7 +787,13 @@ class OpenIDConnect(object):
         .. versionadded:: 1.0
         """
         # TODO: Add single logout
+        from oauth2client.client import OAuth2Credentials
+        info = self.user_getinfo(['name', 'email', 'sub'])
+        user_id = info.get('sub')
+        id_token_jwt = OAuth2Credentials.from_json(self.credentials_store[user_id]).id_token_jwt
+        url = self.client_secrets.get('logout_uri') + '?' + 'id_token_hint=' + id_token_jwt + '&client_id=' + self.client_secrets.get('client_id') + '&post_logout_redirect_uri=' + self.client_secrets.get('post_logout_uri')
         self._set_cookie_id_token(None)
+        return redirect(url)
 
     # Below here is for resource servers to validate tokens
     def validate_token(self, token, scopes_required=None):
