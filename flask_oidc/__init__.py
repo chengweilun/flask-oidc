@@ -791,7 +791,11 @@ class OpenIDConnect(object):
         info = self.user_getinfo(['name', 'email', 'sub'])
         user_id = info.get('sub')
         id_token_jwt = OAuth2Credentials.from_json(self.credentials_store[user_id]).id_token_jwt
-        url = self.client_secrets.get('logout_uri') + '?' + 'id_token_hint=' + id_token_jwt + '&client_id=' + self.client_secrets.get('client_id') + '&post_logout_redirect_uri=' + self.client_secrets.get('post_logout_uri')
+        if type(self.client_secrets.get('post_logout_redirect_uris')) == str:
+            post_logout_redirect_uri = self.client_secrets.get('post_logout_redirect_uris')
+        else:
+            post_logout_redirect_uri = self.client_secrets.get('post_logout_redirect_uris')[0]
+        url = self.client_secrets.get('logout_uri') + '?' + 'id_token_hint=' + id_token_jwt + '&client_id=' + self.client_secrets.get('client_id') + '&post_logout_redirect_uri=' + post_logout_redirect_uri
         self._set_cookie_id_token(None)
         return redirect(url)
 
